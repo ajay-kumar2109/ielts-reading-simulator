@@ -80,8 +80,19 @@ export const getCurrentUser = async () => {
 
     if (!session?.user) return { user: null, profile: null }
 
-    // Try to fetch existing profile
-    const { data: profile, error } = await supabase
+    // Build a fallback profile from the session so auth never depends
+    // on the users table being accessible (RLS policies, missing row, etc.)
+    const fallbackProfile = {
+      id: session.user.id,
+      email: session.user.email || '',
+      full_name: null,
+      role: 'user' as const,
+      created_at: session.user.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+
+    // Try to fetch existing profile from users table
+    const { data: profile } = await supabase
       .from('users')
       .select('*')
       .eq('id', session.user.id)
@@ -91,8 +102,7 @@ export const getCurrentUser = async () => {
       return { user: session.user, profile }
     }
 
-    // Profile doesn't exist yet - create one automatically
-    // This handles the case where signUp didn't create a users table row
+    // Try to create profile row (may fail due to RLS - that's OK)
     const { data: newProfile } = await supabase
       .from('users')
       .insert([{
@@ -103,7 +113,8 @@ export const getCurrentUser = async () => {
       .select()
       .single()
 
-    return { user: session.user, profile: newProfile }
+    // Return DB profile if created, otherwise use fallback from session
+    return { user: session.user, profile: newProfile || fallbackProfile }
   } catch (err) {
     console.error('getCurrentUser error:', err)
     return { user: null, profile: null }
