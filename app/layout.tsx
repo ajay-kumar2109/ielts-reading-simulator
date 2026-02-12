@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://ielts-reading-simulator.netlify.app'),
   title: 'IELTS Reading Simulator - Free Academic Reading Practice Tests',
   description: 'Free IELTS Academic Reading practice simulator with authentic test format, instant scoring, and detailed feedback. Practice IELTS Reading tests online.',
   keywords: 'IELTS Reading, IELTS practice, Academic Reading, IELTS test, IELTS simulator, free IELTS practice, reading test, IELTS preparation',

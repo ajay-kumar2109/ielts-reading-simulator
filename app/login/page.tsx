@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { signIn } from '@/lib/auth'
-import { supabase } from '@/lib/supabase'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -25,12 +24,8 @@ export default function LoginPage() {
     }
 
     if (data?.session) {
-      // Verify session is persisted before redirect
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        window.location.href = '/dashboard'
-        return
-      }
+      window.location.href = '/dashboard'
+      return
     }
 
     setError('Login failed. Please try again.')
