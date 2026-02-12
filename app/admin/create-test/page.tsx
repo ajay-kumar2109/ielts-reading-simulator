@@ -63,17 +63,22 @@ export default function CreateTestPage() {
   }, [])
 
   const checkAuth = async () => {
-    const { profile } = await getCurrentUser()
-    if (!profile) {
+    try {
+      const { profile } = await getCurrentUser()
+      if (!profile) {
+        window.location.href = '/login'
+        return
+      }
+      if (profile.role !== 'admin') {
+        window.location.href = '/dashboard'
+        return
+      }
+      setUser(profile)
+      setLoading(false)
+    } catch (err) {
+      console.error('Auth check failed:', err)
       window.location.href = '/login'
-      return
     }
-    if (profile.role !== 'admin') {
-      window.location.href = '/dashboard'
-      return
-    }
-    setUser(profile)
-    setLoading(false)
   }
 
   const updatePassage = (index: number, field: keyof PassageInput, value: string) => {

@@ -40,13 +40,18 @@ export default function TestPage() {
   }, [timeLeft, loading, test])
 
   const checkAuthAndLoad = async () => {
-    const { profile } = await getCurrentUser()
-    if (!profile) {
+    try {
+      const { profile } = await getCurrentUser()
+      if (!profile) {
+        window.location.href = '/login'
+        return
+      }
+      setUserId(profile.id)
+      await loadTest()
+    } catch (err) {
+      console.error('Auth check failed:', err)
       window.location.href = '/login'
-      return
     }
-    setUserId(profile.id)
-    await loadTest()
   }
 
   const loadTest = async () => {

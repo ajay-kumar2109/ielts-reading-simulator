@@ -24,13 +24,26 @@ export default function SignupPage() {
 
     setLoading(true)
 
-    const { error } = await signUp(email, password)
+    try {
+      const { data, error } = await signUp(email, password)
 
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-    } else {
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+        return
+      }
+
+      // If email confirmation is required, session may be null
+      if (!data?.session) {
+        setError('Please check your email to confirm your account, then log in.')
+        setLoading(false)
+        return
+      }
+
       window.location.href = '/dashboard'
+    } catch (err: any) {
+      setError(err?.message || 'An unexpected error occurred. Please try again.')
+      setLoading(false)
     }
   }
 

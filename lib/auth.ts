@@ -22,7 +22,7 @@ export const validatePassword = (password: string): string | null => {
 export const signUp = async (email: string, password: string) => {
   const passwordError = validatePassword(password)
   if (passwordError) {
-    return { error: { message: passwordError } }
+    return { data: null, error: { message: passwordError } }
   }
 
   const { data, error } = await supabase.auth.signUp({
@@ -30,7 +30,7 @@ export const signUp = async (email: string, password: string) => {
     password,
   })
 
-  if (error) return { error }
+  if (error) return { data: null, error }
 
   return { data, error: null }
 }
@@ -75,17 +75,50 @@ const waitForSession = (): Promise<any> => {
 }
 
 export const getCurrentUser = async () => {
-  const session = await waitForSession()
-  
-  if (!session?.user) return { user: null, profile: null }
+  try {
+    const session = await waitForSession()
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', session.user.id)
-    .single()
+    if (!session?.user) return { user: null, profile: null }
 
-  return { user: session.user, profile }
+    // Build a fallback profile from the session so auth never depends
+    // on the users table being accessible (RLS policies, missing row, etc.)
+    const fallbackProfile = {
+      id: session.user.id,
+      email: session.user.email || '',
+      full_name: null,
+      role: 'user' as const,
+      created_at: session.user.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+
+    // Try to fetch existing profile from users table
+    const { data: profile } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', session.user.id)
+      .single()
+
+    if (profile) {
+      return { user: session.user, profile }
+    }
+
+    // Try to create profile row (may fail due to RLS - that's OK)
+    const { data: newProfile } = await supabase
+      .from('users')
+      .insert([{
+        id: session.user.id,
+        email: session.user.email,
+        role: 'user',
+      }])
+      .select()
+      .single()
+
+    // Return DB profile if created, otherwise use fallback from session
+    return { user: session.user, profile: newProfile || fallbackProfile }
+  } catch (err) {
+    console.error('getCurrentUser error:', err)
+    return { user: null, profile: null }
+  }
 }
 
 export const isAdmin = async () => {

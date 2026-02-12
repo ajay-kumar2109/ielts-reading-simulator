@@ -18,13 +18,18 @@ export default function DashboardPage() {
   }, [])
 
   const checkAuth = async () => {
-    const { profile } = await getCurrentUser()
-    if (!profile) {
+    try {
+      const { profile } = await getCurrentUser()
+      if (!profile) {
+        window.location.href = '/login'
+        return
+      }
+      setUser(profile)
+      await loadData(profile.id)
+    } catch (err) {
+      console.error('Auth check failed:', err)
       window.location.href = '/login'
-      return
     }
-    setUser(profile)
-    await loadData(profile.id)
   }
 
   const loadData = async (userId: string) => {
