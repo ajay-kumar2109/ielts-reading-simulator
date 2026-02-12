@@ -5,7 +5,6 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { getCurrentUser } from '@/lib/auth'
 import { supabase, ReadingAttempt, ReadingTest, ReadingAnswer, ReadingQuestion } from '@/lib/supabase'
-import { formatTime } from '@/lib/utils'
 
 export default function ResultsPage() {
   const router = useRouter()
@@ -24,7 +23,7 @@ export default function ResultsPage() {
   const checkAuthAndLoad = async () => {
     const { profile } = await getCurrentUser()
     if (!profile) {
-      router.push('/login')
+      window.location.href = '/login'
       return
     }
     await loadResults()
@@ -85,6 +84,9 @@ export default function ResultsPage() {
     )
   }
 
+  const score = attempt.score || 0
+  const timeSpent = attempt.time_spent_seconds || 0
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <header className="bg-white shadow-sm">
@@ -103,22 +105,22 @@ export default function ResultsPage() {
           
           <div className="grid md:grid-cols-4 gap-6 mb-6">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-3xl font-bold text-blue-600">{attempt.band}</div>
+              <div className="text-3xl font-bold text-blue-600">{attempt.band_score}</div>
               <div className="text-sm text-gray-600 mt-1">Band Score</div>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-3xl font-bold text-green-600">{attempt.score}/40</div>
+              <div className="text-3xl font-bold text-green-600">{score}/40</div>
               <div className="text-sm text-gray-600 mt-1">Correct Answers</div>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
               <div className="text-3xl font-bold text-purple-600">
-                {Math.round((attempt.score / 40) * 100)}%
+                {Math.round((score / 40) * 100)}%
               </div>
               <div className="text-sm text-gray-600 mt-1">Accuracy</div>
             </div>
             <div className="text-center p-4 bg-orange-50 rounded-lg">
               <div className="text-3xl font-bold text-orange-600">
-                {Math.floor(attempt.time_used / 60)}m
+                {Math.floor(timeSpent / 60)}m
               </div>
               <div className="text-sm text-gray-600 mt-1">Time Used</div>
             </div>
@@ -130,7 +132,7 @@ export default function ResultsPage() {
               <div className="w-full bg-gray-200 rounded-full h-4">
                 <div
                   className="bg-blue-600 h-4 rounded-full transition-all"
-                  style={{ width: `${(attempt.score / 40) * 100}%` }}
+                  style={{ width: `${(score / 40) * 100}%` }}
                 />
               </div>
             </div>

@@ -1,12 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { signIn } from '@/lib/auth'
+import { supabase } from '@/lib/supabase'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -17,15 +16,25 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
-    const { error } = await signIn(email, password)
+    const { data, error } = await signIn(email, password)
 
     if (error) {
       setError(error.message)
       setLoading(false)
-    } else {
-      router.push('/dashboard')
-      router.refresh()
+      return
     }
+
+    if (data?.session) {
+      // Verify session is persisted before redirect
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        window.location.href = '/dashboard'
+        return
+      }
+    }
+
+    setError('Login failed. Please try again.')
+    setLoading(false)
   }
 
   return (
@@ -90,7 +99,7 @@ export default function LoginPage() {
             </form>
 
             <p className="text-center mt-6 text-sm text-gray-600">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/signup" className="text-blue-600 hover:underline">
                 Sign up
               </Link>

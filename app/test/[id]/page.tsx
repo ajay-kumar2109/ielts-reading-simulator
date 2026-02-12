@@ -25,6 +25,8 @@ export default function TestPage() {
   }, [])
 
   useEffect(() => {
+    if (loading || !test) return
+
     if (timeLeft <= 0) {
       handleSubmit()
       return
@@ -35,12 +37,12 @@ export default function TestPage() {
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [timeLeft])
+  }, [timeLeft, loading, test])
 
   const checkAuthAndLoad = async () => {
     const { profile } = await getCurrentUser()
     if (!profile) {
-      router.push('/login')
+      window.location.href = '/login'
       return
     }
     setUserId(profile.id)
@@ -54,21 +56,33 @@ export default function TestPage() {
       .eq('id', testId)
       .single()
 
+    if (testData) {
+      setTest(testData)
+      setTimeLeft(testData.time_limit_minutes * 60)
+    }
+
     const { data: passagesData } = await supabase
       .from('reading_passages')
       .select('*')
       .eq('test_id', testId)
       .order('passage_number')
 
-    const { data: questionsData } = await supabase
-      .from('reading_questions')
-      .select('*')
-      .eq('test_id', testId)
-      .order('question_number')
+    if (passagesData) {
+      setPassages(passagesData)
 
-    if (testData) setTest(testData)
-    if (passagesData) setPassages(passagesData)
-    if (questionsData) setQuestions(questionsData)
+      // Get questions for all passages of this test
+      const passageIds = passagesData.map(p => p.id)
+      if (passageIds.length > 0) {
+        const { data: questionsData } = await supabase
+          .from('reading_questions')
+          .select('*')
+          .in('passage_id', passageIds)
+          .order('question_number')
+
+        if (questionsData) setQuestions(questionsData)
+      }
+    }
+
     setLoading(false)
   }
 
@@ -95,8 +109,8 @@ export default function TestPage() {
       })
     })
 
-    const band = calculateBand(correctCount)
-    const timeUsed = 3600 - timeLeft
+    const bandScore = calculateBand(correctCount)
+    const timeSpent = (test?.time_limit_minutes || 60) * 60 - timeLeft
 
     const { data: attemptData, error: attemptError } = await supabase
       .from('reading_attempts')
@@ -104,8 +118,10 @@ export default function TestPage() {
         user_id: userId,
         test_id: testId,
         score: correctCount,
-        band: band,
-        time_used: timeUsed,
+        band_score: bandScore,
+        time_spent_seconds: timeSpent,
+        status: 'completed',
+        completed_at: new Date().toISOString(),
       }])
       .select()
       .single()
@@ -123,7 +139,7 @@ export default function TestPage() {
 
     await supabase.from('reading_answers').insert(answersWithAttempt)
 
-    router.push(`/results/${attemptData.id}`)
+    window.location.href = `/results/${attemptData.id}`
   }
 
   if (loading) {
@@ -189,9 +205,9 @@ export default function TestPage() {
                         {question.question_number}. {question.question_text}
                       </p>
 
-                      {question.type === 'multiple_choice' && question.options && (
+                      {question.question_type === 'multiple_choice' && question.options && (
                         <div className="space-y-2">
-                          {question.options.map((option, idx) => (
+                          {(Array.isArray(question.options) ? question.options : []).map((option: string, idx: number) => (
                             <label key={idx} className="flex items-center space-x-3 cursor-pointer">
                               <input
                                 type="radio"
@@ -207,9 +223,12 @@ export default function TestPage() {
                         </div>
                       )}
 
-                      {question.type === 'true_false_not_given' && (
+                      {(question.question_type === 'true_false_not_given' || question.question_type === 'yes_no_not_given') && (
                         <div className="space-y-2">
-                          {['TRUE', 'FALSE', 'NOT GIVEN'].map((option) => (
+                          {(question.question_type === 'true_false_not_given' 
+                            ? ['TRUE', 'FALSE', 'NOT GIVEN'] 
+                            : ['YES', 'NO', 'NOT GIVEN']
+                          ).map((option) => (
                             <label key={option} className="flex items-center space-x-3 cursor-pointer">
                               <input
                                 type="radio"
@@ -225,7 +244,7 @@ export default function TestPage() {
                         </div>
                       )}
 
-                      {question.type === 'fill_blank' && (
+                      {['sentence_completion', 'summary_completion', 'short_answer', 'note_completion', 'table_completion', 'flow_chart_completion', 'diagram_label'].includes(question.question_type) && (
                         <input
                           type="text"
                           value={answers[question.id] || ''}
@@ -233,6 +252,19 @@ export default function TestPage() {
                           className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           placeholder="Enter your answer"
                         />
+                      )}
+
+                      {['matching_headings', 'matching_information', 'matching_features', 'list_selection'].includes(question.question_type) && question.options && (
+                        <select
+                          value={answers[question.id] || ''}
+                          onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                          className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Select an answer</option>
+                          {(Array.isArray(question.options) ? question.options : []).map((option: string, idx: number) => (
+                            <option key={idx} value={option}>{option}</option>
+                          ))}
+                        </select>
                       )}
                     </div>
                   ))}

@@ -32,14 +32,6 @@ export const signUp = async (email: string, password: string) => {
 
   if (error) return { error }
 
-  if (data.user) {
-    const { error: dbError } = await supabase
-      .from('users')
-      .insert([{ id: data.user.id, email: data.user.email, role: 'user' }])
-    
-    if (dbError) return { error: dbError }
-  }
-
   return { data, error: null }
 }
 
@@ -56,18 +48,40 @@ export const signOut = async () => {
   return { error }
 }
 
+export const waitForSession = (): Promise<any> => {
+  return new Promise((resolve) => {
+    // First try getSession
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        resolve(session)
+        return
+      }
+      // If no session yet, wait for auth state change
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        subscription.unsubscribe()
+        resolve(session)
+      })
+      // Timeout after 3 seconds
+      setTimeout(() => {
+        subscription.unsubscribe()
+        resolve(null)
+      }, 3000)
+    })
+  })
+}
+
 export const getCurrentUser = async () => {
-  const { data: { user }, error } = await supabase.auth.getUser()
+  const session = await waitForSession()
   
-  if (error || !user) return { user: null, profile: null }
+  if (!session?.user) return { user: null, profile: null }
 
   const { data: profile } = await supabase
     .from('users')
     .select('*')
-    .eq('id', user.id)
+    .eq('id', session.user.id)
     .single()
 
-  return { user, profile }
+  return { user: session.user, profile }
 }
 
 export const isAdmin = async () => {

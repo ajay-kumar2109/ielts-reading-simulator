@@ -20,7 +20,7 @@ export default function DashboardPage() {
   const checkAuth = async () => {
     const { profile } = await getCurrentUser()
     if (!profile) {
-      router.push('/login')
+      window.location.href = '/login'
       return
     }
     setUser(profile)
@@ -31,13 +31,14 @@ export default function DashboardPage() {
     const { data: testsData } = await supabase
       .from('reading_tests')
       .select('*')
+      .eq('is_published', true)
       .order('created_at', { ascending: false })
 
     const { data: attemptsData } = await supabase
       .from('reading_attempts')
       .select('*')
       .eq('user_id', userId)
-      .order('attempted_at', { ascending: false })
+      .order('started_at', { ascending: false })
       .limit(10)
 
     if (testsData) setTests(testsData)
@@ -47,8 +48,7 @@ export default function DashboardPage() {
 
   const handleLogout = async () => {
     await signOut()
-    router.push('/')
-    router.refresh()
+    window.location.href = '/'
   }
 
   if (loading) {
@@ -104,8 +104,11 @@ export default function DashboardPage() {
                   <div key={test.id} className="bg-white rounded-lg shadow p-6">
                     <h3 className="text-xl font-semibold mb-2">{test.title}</h3>
                     {test.description && (
-                      <p className="text-gray-600 mb-4">{test.description}</p>
+                      <p className="text-gray-600 mb-2">{test.description}</p>
                     )}
+                    <p className="text-sm text-gray-500 mb-4">
+                      Difficulty: {test.difficulty} · {test.time_limit_minutes} minutes
+                    </p>
                     <Link
                       href={`/test/${test.id}`}
                       className="inline-block bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
@@ -140,16 +143,18 @@ export default function DashboardPage() {
                         </div>
                         <div>
                           <span className="text-gray-600">Band:</span>{' '}
-                          <span className="font-semibold text-blue-600">{attempt.band}</span>
+                          <span className="font-semibold text-blue-600">{attempt.band_score}</span>
                         </div>
                         <div>
                           <span className="text-gray-600">Time:</span>{' '}
-                          <span className="font-semibold">{Math.floor(attempt.time_used / 60)}m</span>
+                          <span className="font-semibold">
+                            {attempt.time_spent_seconds ? `${Math.floor(attempt.time_spent_seconds / 60)}m` : 'N/A'}
+                          </span>
                         </div>
                         <div>
                           <span className="text-gray-600">Date:</span>{' '}
                           <span className="font-semibold">
-                            {new Date(attempt.attempted_at).toLocaleDateString()}
+                            {new Date(attempt.started_at).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
