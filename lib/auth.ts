@@ -51,25 +51,25 @@ export const signOut = async () => {
 // Wait for the auth state to be ready (handles the localStorage race condition)
 const waitForSession = (): Promise<any> => {
   return new Promise((resolve) => {
-    // First try getSession
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        resolve(session)
-        return
-      }
-      
-      // If no session yet, wait for onAuthStateChange INITIAL_SESSION event
-      const timeout = setTimeout(() => {
+    let resolved = false
+
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true
+        subscription.unsubscribe()
         resolve(null)
-      }, 3000)
-      
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
-          clearTimeout(timeout)
-          subscription.unsubscribe()
-          resolve(session)
-        }
-      })
+      }
+    }, 5000)
+
+    // Register listener BEFORE getSession to avoid missing INITIAL_SESSION
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (resolved) return
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        resolved = true
+        clearTimeout(timeout)
+        subscription.unsubscribe()
+        resolve(session)
+      }
     })
   })
 }
