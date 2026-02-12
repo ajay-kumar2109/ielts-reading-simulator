@@ -15,21 +15,26 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
-    const { data, error } = await signIn(email, password)
+    try {
+      const { data, error } = await signIn(email, password)
 
-    if (error) {
-      setError(error.message)
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+        return
+      }
+
+      if (data?.session) {
+        window.location.href = '/dashboard'
+        return
+      }
+
+      setError('Login failed. Please try again.')
       setLoading(false)
-      return
+    } catch (err: any) {
+      setError(err?.message || 'An unexpected error occurred. Please try again.')
+      setLoading(false)
     }
-
-    if (data?.session) {
-      window.location.href = '/dashboard'
-      return
-    }
-
-    setError('Login failed. Please try again.')
-    setLoading(false)
   }
 
   return (

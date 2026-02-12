@@ -22,7 +22,7 @@ export const validatePassword = (password: string): string | null => {
 export const signUp = async (email: string, password: string) => {
   const passwordError = validatePassword(password)
   if (passwordError) {
-    return { error: { message: passwordError } }
+    return { data: null, error: { message: passwordError } }
   }
 
   const { data, error } = await supabase.auth.signUp({
@@ -30,7 +30,7 @@ export const signUp = async (email: string, password: string) => {
     password,
   })
 
-  if (error) return { error }
+  if (error) return { data: null, error }
 
   return { data, error: null }
 }
@@ -75,17 +75,39 @@ const waitForSession = (): Promise<any> => {
 }
 
 export const getCurrentUser = async () => {
-  const session = await waitForSession()
-  
-  if (!session?.user) return { user: null, profile: null }
+  try {
+    const session = await waitForSession()
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', session.user.id)
-    .single()
+    if (!session?.user) return { user: null, profile: null }
 
-  return { user: session.user, profile }
+    // Try to fetch existing profile
+    const { data: profile, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', session.user.id)
+      .single()
+
+    if (profile) {
+      return { user: session.user, profile }
+    }
+
+    // Profile doesn't exist yet - create one automatically
+    // This handles the case where signUp didn't create a users table row
+    const { data: newProfile } = await supabase
+      .from('users')
+      .insert([{
+        id: session.user.id,
+        email: session.user.email,
+        role: 'user',
+      }])
+      .select()
+      .single()
+
+    return { user: session.user, profile: newProfile }
+  } catch (err) {
+    console.error('getCurrentUser error:', err)
+    return { user: null, profile: null }
+  }
 }
 
 export const isAdmin = async () => {

@@ -21,12 +21,17 @@ export default function ResultsPage() {
   }, [])
 
   const checkAuthAndLoad = async () => {
-    const { profile } = await getCurrentUser()
-    if (!profile) {
+    try {
+      const { profile } = await getCurrentUser()
+      if (!profile) {
+        window.location.href = '/login'
+        return
+      }
+      await loadResults()
+    } catch (err) {
+      console.error('Auth check failed:', err)
       window.location.href = '/login'
-      return
     }
-    await loadResults()
   }
 
   const loadResults = async () => {
