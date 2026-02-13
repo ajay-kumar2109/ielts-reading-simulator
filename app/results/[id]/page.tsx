@@ -76,7 +76,7 @@ export default function ResultsPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading results...</div>
+        <div className="text-lg sm:text-xl">Loading results...</div>
       </div>
     )
   }
@@ -84,7 +84,7 @@ export default function ResultsPage() {
   if (!attempt || !test) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Results not found</div>
+        <div className="text-lg sm:text-xl">Results not found</div>
       </div>
     )
   }
@@ -95,82 +95,86 @@ export default function ResultsPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/dashboard" className="text-2xl font-bold text-blue-600">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <Link href="/dashboard" className="text-lg sm:text-2xl font-bold text-blue-600">
             IELTS Reading Simulator
           </Link>
         </div>
       </header>
 
-      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        <h1 className="text-3xl font-bold mb-8">Test Results</h1>
+      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Test Results</h1>
 
-        <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
-          <h2 className="text-2xl font-semibold mb-6">{test.title}</h2>
-          
-          <div className="grid md:grid-cols-4 gap-6 mb-6">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-3xl font-bold text-blue-600">{attempt.band_score}</div>
-              <div className="text-sm text-gray-600 mt-1">Band Score</div>
+        <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 md:p-8 mb-6 sm:mb-8">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-semibold mb-4 sm:mb-6">{test.title}</h2>
+
+          {/* Stats Grid - 2 cols on mobile, 4 on desktop */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6">
+            <div className="text-center p-3 sm:p-4 bg-blue-50 rounded-lg">
+              <div className="text-2xl sm:text-3xl font-bold text-blue-600">{attempt.band_score}</div>
+              <div className="text-xs sm:text-sm text-gray-600 mt-1">Band Score</div>
             </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-3xl font-bold text-green-600">{score}/40</div>
-              <div className="text-sm text-gray-600 mt-1">Correct Answers</div>
+            <div className="text-center p-3 sm:p-4 bg-green-50 rounded-lg">
+              <div className="text-2xl sm:text-3xl font-bold text-green-600">{score}/40</div>
+              <div className="text-xs sm:text-sm text-gray-600 mt-1">Correct Answers</div>
             </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-3xl font-bold text-purple-600">
+            <div className="text-center p-3 sm:p-4 bg-purple-50 rounded-lg">
+              <div className="text-2xl sm:text-3xl font-bold text-purple-600">
                 {Math.round((score / 40) * 100)}%
               </div>
-              <div className="text-sm text-gray-600 mt-1">Accuracy</div>
+              <div className="text-xs sm:text-sm text-gray-600 mt-1">Accuracy</div>
             </div>
-            <div className="text-center p-4 bg-orange-50 rounded-lg">
-              <div className="text-3xl font-bold text-orange-600">
+            <div className="text-center p-3 sm:p-4 bg-orange-50 rounded-lg">
+              <div className="text-2xl sm:text-3xl font-bold text-orange-600">
                 {Math.floor(timeSpent / 60)}m
               </div>
-              <div className="text-sm text-gray-600 mt-1">Time Used</div>
+              <div className="text-xs sm:text-sm text-gray-600 mt-1">Time Used</div>
             </div>
           </div>
 
           <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-2">Performance Analysis</h3>
-            <div className="bg-gray-100 rounded-lg p-4">
-              <div className="w-full bg-gray-200 rounded-full h-4">
+            <h3 className="text-base sm:text-lg font-semibold mb-2">Performance Analysis</h3>
+            <div className="bg-gray-100 rounded-lg p-3 sm:p-4">
+              <div className="w-full bg-gray-200 rounded-full h-3 sm:h-4">
                 <div
-                  className="bg-blue-600 h-4 rounded-full transition-all"
+                  className="bg-blue-600 h-3 sm:h-4 rounded-full transition-all"
                   style={{ width: `${(score / 40) * 100}%` }}
                 />
               </div>
+              <p className="text-xs sm:text-sm text-gray-500 mt-2 text-center">
+                {score} out of 40 questions answered correctly
+              </p>
             </div>
           </div>
 
-          <div className="flex space-x-4">
+          <div>
             <Link
               href="/dashboard"
-              className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+              className="inline-flex items-center justify-center bg-blue-600 text-white px-5 sm:px-6 py-2.5 sm:py-2 rounded hover:bg-blue-700 text-sm sm:text-base min-h-[44px]"
             >
               Back to Dashboard
             </Link>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <h3 className="text-2xl font-semibold mb-6">Answer Review</h3>
-          <div className="space-y-4">
+        <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
+          <h3 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">Answer Review</h3>
+          <div className="space-y-3 sm:space-y-4">
             {answers.map((answer) => (
               <div
                 key={answer.id}
-                className={`p-4 rounded-lg border-2 ${
+                className={`p-3 sm:p-4 rounded-lg border-2 ${
                   answer.is_correct
                     ? 'bg-green-50 border-green-200'
                     : 'bg-red-50 border-red-200'
                 }`}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-grow">
-                    <p className="font-medium mb-2">
-                      Question {answer.question.question_number}: {answer.question.question_text}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-grow min-w-0">
+                    <p className="font-medium mb-1 sm:mb-2 text-sm sm:text-base">
+                      Q{answer.question.question_number}: {answer.question.question_text}
                     </p>
-                    <div className="space-y-1 text-sm">
+                    <div className="space-y-1 text-xs sm:text-sm">
                       <p>
                         <span className="font-semibold">Your answer:</span>{' '}
                         <span className={answer.is_correct ? 'text-green-700' : 'text-red-700'}>
@@ -185,13 +189,13 @@ export default function ResultsPage() {
                       )}
                     </div>
                   </div>
-                  <div className="ml-4">
+                  <div className="flex-shrink-0 ml-2">
                     {answer.is_correct ? (
-                      <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     ) : (
-                      <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     )}
@@ -203,10 +207,10 @@ export default function ResultsPage() {
         </div>
       </main>
 
-      <footer className="bg-gray-900 text-white py-8 mt-12">
+      <footer className="bg-gray-900 text-white py-6 sm:py-8 mt-8 sm:mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <p className="text-gray-400">
+            <p className="text-gray-400 text-sm sm:text-base">
               This is an independent IELTS practice simulator and is not affiliated with IELTS.
             </p>
           </div>

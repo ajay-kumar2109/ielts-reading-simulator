@@ -19,6 +19,10 @@ export default function TestPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [userId, setUserId] = useState<string>('')
+  // Mobile tab state: 'passage' or 'questions'
+  const [mobileTab, setMobileTab] = useState<'passage' | 'questions'>('passage')
+  // Current passage index for mobile navigation
+  const [activePassageIndex, setActivePassageIndex] = useState(0)
 
   useEffect(() => {
     checkAuthAndLoad()
@@ -106,7 +110,7 @@ export default function TestPage() {
       const userAnswer = answers[q.id]?.trim() || ''
       const isCorrect = userAnswer.toLowerCase() === q.correct_answer.toLowerCase()
       if (isCorrect) correctCount++
-      
+
       answerRecords.push({
         question_id: q.id,
         user_answer: userAnswer,
@@ -147,10 +151,90 @@ export default function TestPage() {
     window.location.href = `/results/${attemptData.id}`
   }
 
+  const activePassage = passages[activePassageIndex]
+  const activePassageQuestions = activePassage
+    ? questions.filter(q => q.passage_id === activePassage.id)
+    : []
+
+  // Render question input based on type
+  const renderQuestionInput = (question: ReadingQuestion) => {
+    if (question.question_type === 'multiple_choice' && question.options) {
+      return (
+        <div className="space-y-1 md:space-y-2">
+          {(Array.isArray(question.options) ? question.options : []).map((option: string, idx: number) => (
+            <label key={idx} className="radio-option flex items-center space-x-3 cursor-pointer p-2 md:p-1 rounded-lg md:rounded hover:bg-gray-50 min-h-[44px]">
+              <input
+                type="radio"
+                name={`question-${question.id}`}
+                value={option}
+                checked={answers[question.id] === option}
+                onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                className="w-5 h-5 md:w-4 md:h-4 flex-shrink-0"
+              />
+              <span className="text-sm sm:text-base">{option}</span>
+            </label>
+          ))}
+        </div>
+      )
+    }
+
+    if (question.question_type === 'true_false_not_given' || question.question_type === 'yes_no_not_given') {
+      const options = question.question_type === 'true_false_not_given'
+        ? ['TRUE', 'FALSE', 'NOT GIVEN']
+        : ['YES', 'NO', 'NOT GIVEN']
+      return (
+        <div className="space-y-1 md:space-y-2">
+          {options.map((option) => (
+            <label key={option} className="radio-option flex items-center space-x-3 cursor-pointer p-2 md:p-1 rounded-lg md:rounded hover:bg-gray-50 min-h-[44px]">
+              <input
+                type="radio"
+                name={`question-${question.id}`}
+                value={option}
+                checked={answers[question.id] === option}
+                onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                className="w-5 h-5 md:w-4 md:h-4 flex-shrink-0"
+              />
+              <span className="text-sm sm:text-base">{option}</span>
+            </label>
+          ))}
+        </div>
+      )
+    }
+
+    if (['sentence_completion', 'summary_completion', 'short_answer', 'note_completion', 'table_completion', 'flow_chart_completion', 'diagram_label'].includes(question.question_type)) {
+      return (
+        <input
+          type="text"
+          value={answers[question.id] || ''}
+          onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+          className="w-full max-w-md px-3 py-3 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[44px]"
+          placeholder="Enter your answer"
+        />
+      )
+    }
+
+    if (['matching_headings', 'matching_information', 'matching_features', 'list_selection'].includes(question.question_type) && question.options) {
+      return (
+        <select
+          value={answers[question.id] || ''}
+          onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+          className="w-full max-w-md px-3 py-3 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[44px]"
+        >
+          <option value="">Select an answer</option>
+          {(Array.isArray(question.options) ? question.options : []).map((option: string, idx: number) => (
+            <option key={idx} value={option}>{option}</option>
+          ))}
+        </select>
+      )
+    }
+
+    return null
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading test...</div>
+        <div className="text-lg sm:text-xl">Loading test...</div>
       </div>
     )
   }
@@ -158,142 +242,166 @@ export default function TestPage() {
   if (!test) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Test not found</div>
+        <div className="text-lg sm:text-xl">Test not found</div>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      {/* Sticky Timer Bar - always visible on all devices */}
+      <header className="timer-bar bg-white shadow-md sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-3">
           <div className="flex justify-between items-center">
-            <h1 className="text-xl font-bold text-blue-600">{test.title}</h1>
-            <div className="flex items-center space-x-4">
-              <div className={`text-lg font-semibold ${timeLeft < 300 ? 'text-red-600' : 'text-gray-900'}`}>
-                Time: {formatTime(timeLeft)}
+            <h1 className="text-sm sm:text-lg md:text-xl font-bold text-blue-600 truncate mr-2 max-w-[40%] sm:max-w-none">
+              {test.title}
+            </h1>
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <div className={`text-base sm:text-lg font-semibold whitespace-nowrap ${timeLeft < 300 ? 'text-red-600 animate-pulse' : 'text-gray-900'}`}>
+                <span className="hidden xs:inline">Time: </span>{formatTime(timeLeft)}
               </div>
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+                className="bg-green-600 text-white px-3 sm:px-6 py-2 rounded text-sm sm:text-base hover:bg-green-700 disabled:opacity-50 min-h-[44px] whitespace-nowrap"
               >
-                {submitting ? 'Submitting...' : 'Submit Test'}
+                {submitting ? 'Submitting...' : 'Submit'}
               </button>
             </div>
           </div>
         </div>
+
+        {/* Mobile Tab Navigation */}
+        <div className="lg:hidden test-tab-bar">
+          <button
+            className={`test-tab ${mobileTab === 'passage' ? 'active' : ''}`}
+            onClick={() => setMobileTab('passage')}
+          >
+            Passage
+          </button>
+          <button
+            className={`test-tab ${mobileTab === 'questions' ? 'active' : ''}`}
+            onClick={() => setMobileTab('questions')}
+          >
+            Questions
+          </button>
+        </div>
+
+        {/* Passage Selector (mobile/tablet) */}
+        <div className="lg:hidden bg-gray-50 border-b border-gray-200 px-3 py-2 flex items-center space-x-2 overflow-x-auto">
+          {passages.map((p, idx) => (
+            <button
+              key={p.id}
+              onClick={() => {
+                setActivePassageIndex(idx)
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors min-h-[36px] ${
+                activePassageIndex === idx
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'
+              }`}
+            >
+              Passage {p.passage_number}
+            </button>
+          ))}
+        </div>
       </header>
 
-      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        {passages.map((passage) => {
-          const passageQuestions = questions.filter(q => q.passage_id === passage.id)
-          
-          return (
-            <div key={passage.id} className="mb-12">
-              <div className="bg-white rounded-lg shadow p-8 mb-6">
-                <h2 className="text-2xl font-bold mb-4">
-                  Passage {passage.passage_number}
-                  {passage.title && `: ${passage.title}`}
-                </h2>
-                <div className="prose max-w-none whitespace-pre-wrap">
-                  {passage.content}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow p-8">
-                <h3 className="text-xl font-semibold mb-6">Questions</h3>
-                <div className="space-y-6">
-                  {passageQuestions.map((question) => (
-                    <div key={question.id} className="border-b pb-6 last:border-0">
-                      <p className="font-medium mb-3">
-                        {question.question_number}. {question.question_text}
-                      </p>
-
-                      {question.question_type === 'multiple_choice' && question.options && (
-                        <div className="space-y-2">
-                          {(Array.isArray(question.options) ? question.options : []).map((option: string, idx: number) => (
-                            <label key={idx} className="flex items-center space-x-3 cursor-pointer">
-                              <input
-                                type="radio"
-                                name={`question-${question.id}`}
-                                value={option}
-                                checked={answers[question.id] === option}
-                                onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                                className="w-4 h-4"
-                              />
-                              <span>{option}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-
-                      {(question.question_type === 'true_false_not_given' || question.question_type === 'yes_no_not_given') && (
-                        <div className="space-y-2">
-                          {(question.question_type === 'true_false_not_given' 
-                            ? ['TRUE', 'FALSE', 'NOT GIVEN'] 
-                            : ['YES', 'NO', 'NOT GIVEN']
-                          ).map((option) => (
-                            <label key={option} className="flex items-center space-x-3 cursor-pointer">
-                              <input
-                                type="radio"
-                                name={`question-${question.id}`}
-                                value={option}
-                                checked={answers[question.id] === option}
-                                onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                                className="w-4 h-4"
-                              />
-                              <span>{option}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-
-                      {['sentence_completion', 'summary_completion', 'short_answer', 'note_completion', 'table_completion', 'flow_chart_completion', 'diagram_label'].includes(question.question_type) && (
-                        <input
-                          type="text"
-                          value={answers[question.id] || ''}
-                          onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                          className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Enter your answer"
-                        />
-                      )}
-
-                      {['matching_headings', 'matching_information', 'matching_features', 'list_selection'].includes(question.question_type) && question.options && (
-                        <select
-                          value={answers[question.id] || ''}
-                          onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                          className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="">Select an answer</option>
-                          {(Array.isArray(question.options) ? question.options : []).map((option: string, idx: number) => (
-                            <option key={idx} value={option}>{option}</option>
-                          ))}
-                        </select>
-                      )}
+      <main className="flex-grow w-full">
+        {/* ── DESKTOP: Split-screen layout ── */}
+        <div className="hidden lg:block max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {passages.map((passage) => {
+            const passageQuestions = questions.filter(q => q.passage_id === passage.id)
+            return (
+              <div key={passage.id} className="mb-10">
+                <div className="test-split-layout">
+                  {/* Left: Passage */}
+                  <div className="test-passage-panel bg-white rounded-lg shadow p-6 xl:p-8">
+                    <h2 className="text-xl xl:text-2xl font-bold mb-4">
+                      Passage {passage.passage_number}
+                      {passage.title && `: ${passage.title}`}
+                    </h2>
+                    <div className="prose max-w-none whitespace-pre-wrap text-sm xl:text-base leading-relaxed">
+                      {passage.content}
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Right: Questions */}
+                  <div className="bg-white rounded-lg shadow p-6 xl:p-8">
+                    <h3 className="text-lg xl:text-xl font-semibold mb-6">Questions</h3>
+                    <div className="space-y-6">
+                      {passageQuestions.map((question) => (
+                        <div key={question.id} className="border-b pb-6 last:border-0">
+                          <p className="font-medium mb-3 text-sm xl:text-base">
+                            {question.question_number}. {question.question_text}
+                          </p>
+                          {renderQuestionInput(question)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
 
-        <div className="text-center mt-8">
+        {/* ── MOBILE/TABLET: Tab-based interface ── */}
+        <div className="lg:hidden px-3 sm:px-4 py-4 sm:py-6">
+          {activePassage && (
+            <>
+              {/* Passage Content (visible when passage tab active) */}
+              {mobileTab === 'passage' && (
+                <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+                  <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">
+                    Passage {activePassage.passage_number}
+                    {activePassage.title && `: ${activePassage.title}`}
+                  </h2>
+                  <div className="prose max-w-none whitespace-pre-wrap text-sm sm:text-base leading-relaxed">
+                    {activePassage.content}
+                  </div>
+                </div>
+              )}
+
+              {/* Questions (visible when questions tab active) */}
+              {mobileTab === 'questions' && (
+                <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+                  <h3 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6">
+                    Questions for Passage {activePassage.passage_number}
+                  </h3>
+                  <div className="space-y-5 sm:space-y-6">
+                    {activePassageQuestions.map((question) => (
+                      <div key={question.id} className="border-b pb-5 sm:pb-6 last:border-0">
+                        <p className="font-medium mb-3 text-sm sm:text-base">
+                          {question.question_number}. {question.question_text}
+                        </p>
+                        {renderQuestionInput(question)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Bottom submit button */}
+        <div className="text-center py-6 sm:py-8 px-4">
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="bg-green-600 text-white px-8 py-3 rounded-lg text-lg hover:bg-green-700 disabled:opacity-50"
+            className="bg-green-600 text-white px-6 sm:px-8 py-3 rounded-lg text-base sm:text-lg hover:bg-green-700 disabled:opacity-50 min-h-[44px] w-full sm:w-auto max-w-sm"
           >
             {submitting ? 'Submitting...' : 'Submit Test'}
           </button>
         </div>
       </main>
 
-      <footer className="bg-gray-900 text-white py-8">
+      <footer className="bg-gray-900 text-white py-6 sm:py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <p className="text-gray-400">
+            <p className="text-gray-400 text-sm sm:text-base">
               This is an independent IELTS practice simulator and is not affiliated with IELTS.
             </p>
           </div>
