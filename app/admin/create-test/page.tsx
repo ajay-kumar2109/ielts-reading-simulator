@@ -227,7 +227,7 @@ export default function CreateTestPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+        <div className="text-lg sm:text-xl">Loading...</div>
       </div>
     )
   }
@@ -235,14 +235,14 @@ export default function CreateTestPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex justify-between items-center">
-            <Link href="/admin" className="text-2xl font-bold text-blue-600">
+            <Link href="/admin" className="text-lg sm:text-2xl font-bold text-blue-600">
               IELTS Reading Simulator
             </Link>
             <Link
               href="/admin"
-              className="text-gray-600 hover:text-blue-600"
+              className="text-sm sm:text-base text-gray-600 hover:text-blue-600 min-h-[44px] flex items-center"
             >
               Back to Admin
             </Link>
@@ -250,24 +250,24 @@ export default function CreateTestPage() {
         </div>
       </header>
 
-      <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        <h1 className="text-3xl font-bold mb-8">Create New Test</h1>
+      <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Create New Test</h1>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 sm:mb-6 text-sm sm:text-base">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-6">
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4 sm:mb-6 text-sm sm:text-base">
             {success}
           </div>
         )}
 
         {/* Test Metadata */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Test Details</h2>
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6 mb-6 sm:mb-8">
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Test Details</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
@@ -275,7 +275,7 @@ export default function CreateTestPage() {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[44px]"
                 placeholder="e.g., Academic Reading Test 1"
               />
             </div>
@@ -284,18 +284,19 @@ export default function CreateTestPage() {
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
                 rows={2}
                 placeholder="Brief description of the test"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            {/* Stack on mobile, side by side on sm+ */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Difficulty</label>
                 <select
                   value={difficulty}
                   onChange={(e) => setDifficulty(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[44px]"
                 >
                   <option value="easy">Easy</option>
                   <option value="medium">Medium</option>
@@ -308,7 +309,7 @@ export default function CreateTestPage() {
                   type="number"
                   value={timeLimit}
                   onChange={(e) => setTimeLimit(parseInt(e.target.value) || 60)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[44px]"
                   min={1}
                   max={120}
                 />
@@ -319,8 +320,8 @@ export default function CreateTestPage() {
 
         {/* Passages */}
         {passages.map((passage, pIndex) => (
-          <div key={pIndex} className="bg-white rounded-lg shadow p-6 mb-8">
-            <h2 className="text-xl font-semibold mb-4">Passage {passage.passage_number}</h2>
+          <div key={pIndex} className="bg-white rounded-lg shadow p-4 sm:p-6 mb-6 sm:mb-8">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Passage {passage.passage_number}</h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Passage Title</label>
@@ -328,7 +329,7 @@ export default function CreateTestPage() {
                   type="text"
                   value={passage.title}
                   onChange={(e) => updatePassage(pIndex, 'title', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[44px]"
                   placeholder="e.g., The History of Coffee"
                 />
               </div>
@@ -337,39 +338,39 @@ export default function CreateTestPage() {
                 <textarea
                   value={passage.content}
                   onChange={(e) => updatePassage(pIndex, 'content', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows={10}
+                  className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                  rows={8}
                   placeholder="Paste the reading passage text here..."
                 />
               </div>
             </div>
 
             {/* Questions for this passage */}
-            <div className="mt-6 border-t pt-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">
+            <div className="mt-5 sm:mt-6 border-t pt-5 sm:pt-6">
+              <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-2 mb-4">
+                <h3 className="text-base sm:text-lg font-semibold">
                   Questions for Passage {passage.passage_number} ({questions.filter(q => q.passage_index === pIndex).length})
                 </h3>
                 <button
                   type="button"
                   onClick={() => addQuestion(pIndex)}
-                  className="bg-blue-600 text-white px-4 py-1 rounded text-sm hover:bg-blue-700"
+                  className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 min-h-[44px] whitespace-nowrap"
                 >
                   Add Question
                 </button>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-5 sm:space-y-6">
                 {questions.map((question, qIndex) => {
                   if (question.passage_index !== pIndex) return null
                   return (
-                    <div key={qIndex} className="border border-gray-200 rounded-lg p-4">
+                    <div key={qIndex} className="border border-gray-200 rounded-lg p-3 sm:p-4">
                       <div className="flex justify-between items-center mb-3">
-                        <span className="font-medium">Question {question.question_number}</span>
+                        <span className="font-medium text-sm sm:text-base">Question {question.question_number}</span>
                         <button
                           type="button"
                           onClick={() => removeQuestion(qIndex)}
-                          className="text-red-600 hover:text-red-800 text-sm"
+                          className="text-red-600 hover:text-red-800 text-sm min-h-[44px] flex items-center px-2"
                         >
                           Remove
                         </button>
@@ -381,7 +382,7 @@ export default function CreateTestPage() {
                           <select
                             value={question.question_type}
                             onChange={(e) => updateQuestion(qIndex, 'question_type', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                            className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px]"
                           >
                             {QUESTION_TYPES.map(type => (
                               <option key={type} value={type}>
@@ -396,7 +397,7 @@ export default function CreateTestPage() {
                           <textarea
                             value={question.question_text}
                             onChange={(e) => updateQuestion(qIndex, 'question_text', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                            className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                             rows={2}
                           />
                         </div>
@@ -410,7 +411,7 @@ export default function CreateTestPage() {
                                 type="text"
                                 value={opt}
                                 onChange={(e) => updateOption(qIndex, optIdx, e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm mb-2"
+                                className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm mb-2 min-h-[44px]"
                                 placeholder={`Option ${optIdx + 1}`}
                               />
                             ))}
@@ -421,7 +422,7 @@ export default function CreateTestPage() {
                                   i === qIndex ? { ...q, options: [...q.options, ''] } : q
                                 ))
                               }}
-                              className="text-blue-600 hover:text-blue-800 text-sm"
+                              className="text-blue-600 hover:text-blue-800 text-sm min-h-[44px] flex items-center"
                             >
                               + Add Option
                             </button>
@@ -434,7 +435,7 @@ export default function CreateTestPage() {
                             type="text"
                             value={question.correct_answer}
                             onChange={(e) => updateQuestion(qIndex, 'correct_answer', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                            className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px]"
                             placeholder="The correct answer"
                           />
                         </div>
@@ -444,7 +445,7 @@ export default function CreateTestPage() {
                           <textarea
                             value={question.explanation}
                             onChange={(e) => updateQuestion(qIndex, 'explanation', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                            className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                             rows={2}
                             placeholder="Optional explanation for the answer"
                           />
@@ -459,28 +460,28 @@ export default function CreateTestPage() {
         ))}
 
         {/* Submit Buttons */}
-        <div className="flex space-x-4 mb-8">
+        <div className="flex flex-col xs:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8">
           <button
             onClick={() => handleSubmit(false)}
             disabled={saving}
-            className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 disabled:opacity-50"
+            className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 disabled:opacity-50 text-sm sm:text-base min-h-[44px] w-full xs:w-auto"
           >
             {saving ? 'Saving...' : 'Save as Draft'}
           </button>
           <button
             onClick={() => handleSubmit(true)}
             disabled={saving}
-            className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50"
+            className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm sm:text-base min-h-[44px] w-full xs:w-auto"
           >
             {saving ? 'Saving...' : 'Save & Publish'}
           </button>
         </div>
       </main>
 
-      <footer className="bg-gray-900 text-white py-8">
+      <footer className="bg-gray-900 text-white py-6 sm:py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <p className="text-gray-400">
+            <p className="text-gray-400 text-sm sm:text-base">
               This is an independent IELTS practice simulator and is not affiliated with IELTS.
             </p>
           </div>

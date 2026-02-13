@@ -50,25 +50,25 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/" className="text-2xl font-bold text-blue-600">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <Link href="/" className="text-lg sm:text-2xl font-bold text-blue-600">
             IELTS Reading Simulator
           </Link>
         </div>
       </header>
 
-      <main className="flex-grow flex items-center justify-center px-4 py-12">
+      <main className="flex-grow flex items-center justify-center px-4 py-8 sm:py-12">
         <div className="max-w-md w-full">
-          <div className="bg-white rounded-lg shadow-md p-8">
-            <h1 className="text-2xl font-bold text-center mb-8">Create Account</h1>
+          <div className="bg-white rounded-lg shadow-md p-6 sm:p-8">
+            <h1 className="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8">Create Account</h1>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 text-sm sm:text-base">
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                   Email
@@ -79,7 +79,7 @@ export default function SignupPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[44px]"
                   placeholder="your@email.com"
                 />
               </div>
@@ -94,7 +94,7 @@ export default function SignupPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[44px]"
                   placeholder="••••••••"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -112,7 +112,7 @@ export default function SignupPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[44px]"
                   placeholder="••••••••"
                 />
               </div>
@@ -120,7 +120,7 @@ export default function SignupPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-blue-600 text-white py-3 sm:py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium min-h-[44px]"
               >
                 {loading ? 'Creating account...' : 'Sign Up'}
               </button>
@@ -128,7 +128,7 @@ export default function SignupPage() {
 
             <p className="text-center mt-6 text-sm text-gray-600">
               Already have an account?{' '}
-              <Link href="/login" className="text-blue-600 hover:underline">
+              <Link href="/login" className="text-blue-600 hover:underline font-medium">
                 Login
               </Link>
             </p>
@@ -136,10 +136,10 @@ export default function SignupPage() {
         </div>
       </main>
 
-      <footer className="bg-gray-900 text-white py-8">
+      <footer className="bg-gray-900 text-white py-6 sm:py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <p className="text-gray-400">
+            <p className="text-gray-400 text-sm sm:text-base">
               This is an independent IELTS practice simulator and is not affiliated with IELTS.
             </p>
           </div>
