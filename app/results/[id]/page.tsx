@@ -92,6 +92,20 @@ export default function ResultsPage() {
   const score = attempt.score || 0
   const timeSpent = attempt.time_spent_seconds || 0
 
+  // Build question type summary
+  const questionTypeSummary = answers.reduce((acc, answer) => {
+    const type = answer.question.question_type
+    if (!acc[type]) {
+      acc[type] = { correct: 0, total: 0 }
+    }
+    acc[type].total++
+    if (answer.is_correct) acc[type].correct++
+    return acc
+  }, {} as Record<string, { correct: number; total: number }>)
+
+  const formatTypeName = (type: string) =>
+    type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <header className="bg-white shadow-sm">
@@ -156,6 +170,36 @@ export default function ResultsPage() {
             </Link>
           </div>
         </div>
+
+        {/* Question Type Summary */}
+        {Object.keys(questionTypeSummary).length > 0 && (
+          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 md:p-8 mb-6 sm:mb-8">
+            <h3 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">Performance by Question Type</h3>
+            <div className="space-y-3 sm:space-y-4">
+              {Object.entries(questionTypeSummary).map(([type, stats]) => {
+                const percentage = Math.round((stats.correct / stats.total) * 100)
+                return (
+                  <div key={type} className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                      <span className="font-medium text-sm sm:text-base">{formatTypeName(type)}</span>
+                      <span className="text-sm text-gray-600">
+                        {stats.correct}/{stats.total} correct ({percentage}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div
+                        className={`h-2.5 rounded-full transition-all ${
+                          percentage >= 70 ? 'bg-green-500' : percentage >= 40 ? 'bg-yellow-500' : 'bg-red-500'
+                        }`}
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
           <h3 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">Answer Review</h3>

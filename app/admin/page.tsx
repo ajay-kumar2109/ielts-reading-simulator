@@ -187,6 +187,12 @@ export default function AdminPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2 sm:ml-4 flex-shrink-0">
+                      <Link
+                        href={`/admin/create-test?edit=${test.id}`}
+                        className="px-3 sm:px-4 py-2 rounded text-xs sm:text-sm bg-blue-100 text-blue-800 hover:bg-blue-200 min-h-[44px] flex items-center"
+                      >
+                        Edit
+                      </Link>
                       <button
                         onClick={() => togglePublish(test)}
                         className={`px-3 sm:px-4 py-2 rounded text-xs sm:text-sm min-h-[44px] ${
