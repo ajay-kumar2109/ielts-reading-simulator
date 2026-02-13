@@ -1,17 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
 import { supabase, User } from '@/lib/supabase'
 
 type PassageInput = {
+  id?: string
   passage_number: number
   title: string
   content: string
 }
 
 type QuestionInput = {
+  id?: string
   passage_index: number
   question_number: number
   question_type: string
@@ -38,12 +41,22 @@ const QUESTION_TYPES = [
   'diagram_label',
 ]
 
-export default function CreateTestPage() {
+// Question types that have fixed answer choices (no free typing needed)
+const FIXED_ANSWER_TYPES: Record<string, string[]> = {
+  true_false_not_given: ['TRUE', 'FALSE', 'NOT GIVEN'],
+  yes_no_not_given: ['YES', 'NO', 'NOT GIVEN'],
+}
+
+function CreateTestContent() {
+  const searchParams = useSearchParams()
+  const editTestId = searchParams.get('edit')
+
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [isEditMode, setIsEditMode] = useState(false)
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -74,11 +87,76 @@ export default function CreateTestPage() {
         return
       }
       setUser(profile)
-      setLoading(false)
+
+      if (editTestId) {
+        await loadExistingTest(editTestId)
+      } else {
+        setLoading(false)
+      }
     } catch (err) {
       console.error('Auth check failed:', err)
       window.location.href = '/login'
     }
+  }
+
+  const loadExistingTest = async (testId: string) => {
+    const { data: testData } = await supabase
+      .from('reading_tests')
+      .select('*')
+      .eq('id', testId)
+      .single()
+
+    if (!testData) {
+      setError('Test not found')
+      setLoading(false)
+      return
+    }
+
+    setTitle(testData.title)
+    setDescription(testData.description || '')
+    setDifficulty(testData.difficulty)
+    setTimeLimit(testData.time_limit_minutes)
+    setIsEditMode(true)
+
+    const { data: passagesData } = await supabase
+      .from('reading_passages')
+      .select('*')
+      .eq('test_id', testId)
+      .order('passage_number')
+
+    if (passagesData && passagesData.length > 0) {
+      setPassages(passagesData.map(p => ({
+        id: p.id,
+        passage_number: p.passage_number,
+        title: p.title || '',
+        content: p.content,
+      })))
+
+      const passageIds = passagesData.map(p => p.id)
+      const { data: questionsData } = await supabase
+        .from('reading_questions')
+        .select('*')
+        .in('passage_id', passageIds)
+        .order('question_number')
+
+      if (questionsData) {
+        setQuestions(questionsData.map(q => {
+          const passageIndex = passagesData.findIndex(p => p.id === q.passage_id)
+          return {
+            id: q.id,
+            passage_index: passageIndex,
+            question_number: q.question_number,
+            question_type: q.question_type,
+            question_text: q.question_text,
+            options: q.options || ['', '', '', ''],
+            correct_answer: q.correct_answer,
+            explanation: q.explanation || '',
+          }
+        }))
+      }
+    }
+
+    setLoading(false)
   }
 
   const updatePassage = (index: number, field: keyof PassageInput, value: string) => {
@@ -102,7 +180,21 @@ export default function CreateTestPage() {
   }
 
   const updateQuestion = (qIndex: number, field: string, value: any) => {
-    setQuestions(prev => prev.map((q, i) => i === qIndex ? { ...q, [field]: value } : q))
+    setQuestions(prev => prev.map((q, i) => {
+      if (i !== qIndex) return q
+      const updated = { ...q, [field]: value }
+      // When changing question type, reset correct_answer if the new type has fixed answers
+      if (field === 'question_type') {
+        if (FIXED_ANSWER_TYPES[value]) {
+          updated.correct_answer = ''
+        }
+        // For multiple_choice, the correct_answer should be one of the options - reset if switching
+        if (value === 'multiple_choice') {
+          updated.correct_answer = ''
+        }
+      }
+      return updated
+    }))
   }
 
   const updateOption = (qIndex: number, optIndex: number, value: string) => {
@@ -117,7 +209,6 @@ export default function CreateTestPage() {
   const removeQuestion = (qIndex: number) => {
     setQuestions(prev => {
       const updated = prev.filter((_, i) => i !== qIndex)
-      // Renumber questions
       let num = 1
       return updated.map(q => ({ ...q, question_number: num++ }))
     })
@@ -125,6 +216,85 @@ export default function CreateTestPage() {
 
   const needsOptions = (type: string) => {
     return ['multiple_choice', 'matching_headings', 'matching_information', 'matching_features', 'list_selection'].includes(type)
+  }
+
+  // Render the correct answer input based on question type
+  const renderCorrectAnswerInput = (question: QuestionInput, qIndex: number) => {
+    // Fixed answer types: show radio buttons
+    if (FIXED_ANSWER_TYPES[question.question_type]) {
+      const choices = FIXED_ANSWER_TYPES[question.question_type]
+      return (
+        <div className="space-y-1">
+          {choices.map((choice) => (
+            <label key={choice} className="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50 min-h-[44px]">
+              <input
+                type="radio"
+                name={`correct-answer-${qIndex}`}
+                value={choice}
+                checked={question.correct_answer === choice}
+                onChange={(e) => updateQuestion(qIndex, 'correct_answer', e.target.value)}
+                className="w-5 h-5 flex-shrink-0"
+              />
+              <span className="text-sm">{choice}</span>
+            </label>
+          ))}
+        </div>
+      )
+    }
+
+    // Multiple choice: select from the options the admin has entered
+    if (question.question_type === 'multiple_choice') {
+      const filledOptions = question.options.filter(o => o.trim())
+      if (filledOptions.length > 0) {
+        return (
+          <div className="space-y-1">
+            {filledOptions.map((option, idx) => (
+              <label key={idx} className="flex items-center space-x-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50 min-h-[44px]">
+                <input
+                  type="radio"
+                  name={`correct-answer-${qIndex}`}
+                  value={option}
+                  checked={question.correct_answer === option}
+                  onChange={(e) => updateQuestion(qIndex, 'correct_answer', e.target.value)}
+                  className="w-5 h-5 flex-shrink-0"
+                />
+                <span className="text-sm">{option}</span>
+              </label>
+            ))}
+          </div>
+        )
+      }
+    }
+
+    // Matching/selection types with options: select from the options
+    if (['matching_headings', 'matching_information', 'matching_features', 'list_selection'].includes(question.question_type)) {
+      const filledOptions = question.options.filter(o => o.trim())
+      if (filledOptions.length > 0) {
+        return (
+          <select
+            value={question.correct_answer}
+            onChange={(e) => updateQuestion(qIndex, 'correct_answer', e.target.value)}
+            className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px]"
+          >
+            <option value="">Select correct answer</option>
+            {filledOptions.map((option, idx) => (
+              <option key={idx} value={option}>{option}</option>
+            ))}
+          </select>
+        )
+      }
+    }
+
+    // Default: free text input for completion/short answer types
+    return (
+      <input
+        type="text"
+        value={question.correct_answer}
+        onChange={(e) => updateQuestion(qIndex, 'correct_answer', e.target.value)}
+        className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px]"
+        placeholder="The correct answer"
+      />
+    )
   }
 
   const handleSubmit = async (publish: boolean) => {
@@ -153,72 +323,150 @@ export default function CreateTestPage() {
 
     setSaving(true)
 
-    // Create test
-    const { data: testData, error: testError } = await supabase
-      .from('reading_tests')
-      .insert([{
-        title: title.trim(),
-        description: description.trim() || null,
-        difficulty,
-        time_limit_minutes: timeLimit,
-        is_published: publish,
-        created_by: user?.id,
-      }])
-      .select()
-      .single()
+    if (isEditMode && editTestId) {
+      // UPDATE existing test
+      const { error: testError } = await supabase
+        .from('reading_tests')
+        .update({
+          title: title.trim(),
+          description: description.trim() || null,
+          difficulty,
+          time_limit_minutes: timeLimit,
+          is_published: publish,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', editTestId)
 
-    if (testError || !testData) {
-      setError('Failed to create test: ' + (testError?.message || 'Unknown error'))
-      setSaving(false)
-      return
-    }
-
-    // Create passages
-    const passageInserts = passages.map(p => ({
-      test_id: testData.id,
-      passage_number: p.passage_number,
-      title: p.title.trim(),
-      content: p.content.trim(),
-    }))
-
-    const { data: passageData, error: passageError } = await supabase
-      .from('reading_passages')
-      .insert(passageInserts)
-      .select()
-
-    if (passageError || !passageData) {
-      setError('Failed to create passages: ' + (passageError?.message || 'Unknown error'))
-      setSaving(false)
-      return
-    }
-
-    // Create questions
-    const questionInserts = questions.map(q => {
-      const passage = passageData[q.passage_index]
-      return {
-        passage_id: passage.id,
-        question_number: q.question_number,
-        question_type: q.question_type,
-        question_text: q.question_text.trim(),
-        options: needsOptions(q.question_type) ? q.options.filter(o => o.trim()) : null,
-        correct_answer: q.correct_answer.trim(),
-        explanation: q.explanation.trim() || null,
+      if (testError) {
+        setError('Failed to update test: ' + testError.message)
+        setSaving(false)
+        return
       }
-    })
 
-    const { error: questionError } = await supabase
-      .from('reading_questions')
-      .insert(questionInserts)
+      // Delete old passages and questions, then re-insert
+      const { data: oldPassages } = await supabase
+        .from('reading_passages')
+        .select('id')
+        .eq('test_id', editTestId)
 
-    if (questionError) {
-      setError('Failed to create questions: ' + questionError.message)
-      setSaving(false)
-      return
+      if (oldPassages) {
+        const oldPassageIds = oldPassages.map(p => p.id)
+        if (oldPassageIds.length > 0) {
+          await supabase.from('reading_questions').delete().in('passage_id', oldPassageIds)
+        }
+        await supabase.from('reading_passages').delete().eq('test_id', editTestId)
+      }
+
+      // Insert new passages
+      const passageInserts = passages.map(p => ({
+        test_id: editTestId,
+        passage_number: p.passage_number,
+        title: p.title.trim(),
+        content: p.content.trim(),
+      }))
+
+      const { data: passageData, error: passageError } = await supabase
+        .from('reading_passages')
+        .insert(passageInserts)
+        .select()
+
+      if (passageError || !passageData) {
+        setError('Failed to update passages: ' + (passageError?.message || 'Unknown error'))
+        setSaving(false)
+        return
+      }
+
+      // Insert new questions
+      const questionInserts = questions.map(q => {
+        const passage = passageData[q.passage_index]
+        return {
+          passage_id: passage.id,
+          question_number: q.question_number,
+          question_type: q.question_type,
+          question_text: q.question_text.trim(),
+          options: needsOptions(q.question_type) ? q.options.filter(o => o.trim()) : null,
+          correct_answer: q.correct_answer.trim(),
+          explanation: q.explanation.trim() || null,
+        }
+      })
+
+      const { error: questionError } = await supabase
+        .from('reading_questions')
+        .insert(questionInserts)
+
+      if (questionError) {
+        setError('Failed to update questions: ' + questionError.message)
+        setSaving(false)
+        return
+      }
+
+      setSuccess('Test updated successfully!')
+    } else {
+      // CREATE new test
+      const { data: testData, error: testError } = await supabase
+        .from('reading_tests')
+        .insert([{
+          title: title.trim(),
+          description: description.trim() || null,
+          difficulty,
+          time_limit_minutes: timeLimit,
+          is_published: publish,
+          created_by: user?.id,
+        }])
+        .select()
+        .single()
+
+      if (testError || !testData) {
+        setError('Failed to create test: ' + (testError?.message || 'Unknown error'))
+        setSaving(false)
+        return
+      }
+
+      const passageInserts = passages.map(p => ({
+        test_id: testData.id,
+        passage_number: p.passage_number,
+        title: p.title.trim(),
+        content: p.content.trim(),
+      }))
+
+      const { data: passageData, error: passageError } = await supabase
+        .from('reading_passages')
+        .insert(passageInserts)
+        .select()
+
+      if (passageError || !passageData) {
+        setError('Failed to create passages: ' + (passageError?.message || 'Unknown error'))
+        setSaving(false)
+        return
+      }
+
+      const questionInserts = questions.map(q => {
+        const passage = passageData[q.passage_index]
+        return {
+          passage_id: passage.id,
+          question_number: q.question_number,
+          question_type: q.question_type,
+          question_text: q.question_text.trim(),
+          options: needsOptions(q.question_type) ? q.options.filter(o => o.trim()) : null,
+          correct_answer: q.correct_answer.trim(),
+          explanation: q.explanation.trim() || null,
+        }
+      })
+
+      const { error: questionError } = await supabase
+        .from('reading_questions')
+        .insert(questionInserts)
+
+      if (questionError) {
+        setError('Failed to create questions: ' + questionError.message)
+        setSaving(false)
+        return
+      }
+
+      setSuccess('Test created successfully!')
     }
 
-    setSuccess('Test created successfully!')
     setSaving(false)
-
     setTimeout(() => {
       window.location.href = '/admin'
     }, 1500)
@@ -251,7 +499,9 @@ export default function CreateTestPage() {
       </header>
 
       <main className="flex-grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Create New Test</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">
+          {isEditMode ? 'Edit Test' : 'Create New Test'}
+        </h1>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 sm:mb-6 text-sm sm:text-base">
@@ -289,7 +539,6 @@ export default function CreateTestPage() {
                 placeholder="Brief description of the test"
               />
             </div>
-            {/* Stack on mobile, side by side on sm+ */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Difficulty</label>
@@ -431,13 +680,7 @@ export default function CreateTestPage() {
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Correct Answer *</label>
-                          <input
-                            type="text"
-                            value={question.correct_answer}
-                            onChange={(e) => updateQuestion(qIndex, 'correct_answer', e.target.value)}
-                            className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px]"
-                            placeholder="The correct answer"
-                          />
+                          {renderCorrectAnswerInput(question, qIndex)}
                         </div>
 
                         <div>
@@ -473,7 +716,7 @@ export default function CreateTestPage() {
             disabled={saving}
             className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm sm:text-base min-h-[44px] w-full xs:w-auto"
           >
-            {saving ? 'Saving...' : 'Save & Publish'}
+            {saving ? 'Saving...' : (isEditMode ? 'Save & Publish' : 'Save & Publish')}
           </button>
         </div>
       </main>
@@ -488,5 +731,17 @@ export default function CreateTestPage() {
         </div>
       </footer>
     </div>
+  )
+}
+
+export default function CreateTestPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg sm:text-xl">Loading...</div>
+      </div>
+    }>
+      <CreateTestContent />
+    </Suspense>
   )
 }

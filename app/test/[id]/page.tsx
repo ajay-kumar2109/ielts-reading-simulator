@@ -51,6 +51,22 @@ export default function TestPage() {
         return
       }
       setUserId(profile.id)
+
+      // Check if user already completed this test
+      const { data: existingAttempt } = await supabase
+        .from('reading_attempts')
+        .select('id')
+        .eq('user_id', profile.id)
+        .eq('test_id', testId)
+        .eq('status', 'completed')
+        .limit(1)
+        .single()
+
+      if (existingAttempt) {
+        window.location.href = `/results/${existingAttempt.id}`
+        return
+      }
+
       await loadTest()
     } catch (err) {
       console.error('Auth check failed:', err)

@@ -11,6 +11,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [tests, setTests] = useState<ReadingTest[]>([])
   const [attempts, setAttempts] = useState<ReadingAttempt[]>([])
+  const [allAttempts, setAllAttempts] = useState<ReadingAttempt[]>([])
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -40,15 +41,20 @@ export default function DashboardPage() {
       .eq('is_published', true)
       .order('created_at', { ascending: false })
 
-    const { data: attemptsData } = await supabase
+    // Fetch all completed attempts for this user (to check which tests are already taken)
+    const { data: allAttemptsData } = await supabase
       .from('reading_attempts')
       .select('*')
       .eq('user_id', userId)
+      .eq('status', 'completed')
       .order('started_at', { ascending: false })
-      .limit(10)
+
+    // Recent attempts (for display, limit 10)
+    const recentAttempts = (allAttemptsData || []).slice(0, 10)
 
     if (testsData) setTests(testsData)
-    if (attemptsData) setAttempts(attemptsData)
+    if (allAttemptsData) setAllAttempts(allAttemptsData)
+    setAttempts(recentAttempts)
     setLoading(false)
   }
 
@@ -144,23 +150,47 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-3 sm:space-y-4">
-                {tests.map((test) => (
-                  <div key={test.id} className="bg-white rounded-lg shadow p-4 sm:p-6">
-                    <h3 className="text-lg sm:text-xl font-semibold mb-1 sm:mb-2">{test.title}</h3>
-                    {test.description && (
-                      <p className="text-gray-600 mb-2 text-sm sm:text-base">{test.description}</p>
-                    )}
-                    <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">
-                      Difficulty: {test.difficulty} &middot; {test.time_limit_minutes} minutes
-                    </p>
-                    <Link
-                      href={`/test/${test.id}`}
-                      className="inline-flex items-center justify-center bg-blue-600 text-white px-5 sm:px-6 py-2.5 sm:py-2 rounded hover:bg-blue-700 text-sm sm:text-base min-h-[44px]"
-                    >
-                      Start Test
-                    </Link>
-                  </div>
-                ))}
+                {tests.map((test) => {
+                  const completedAttempt = allAttempts.find(a => a.test_id === test.id)
+                  return (
+                    <div key={test.id} className="bg-white rounded-lg shadow p-4 sm:p-6">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="text-lg sm:text-xl font-semibold mb-1 sm:mb-2">{test.title}</h3>
+                        {completedAttempt && (
+                          <span className="flex-shrink-0 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                            Completed
+                          </span>
+                        )}
+                      </div>
+                      {test.description && (
+                        <p className="text-gray-600 mb-2 text-sm sm:text-base">{test.description}</p>
+                      )}
+                      <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">
+                        Difficulty: {test.difficulty} &middot; {test.time_limit_minutes} minutes
+                      </p>
+                      {completedAttempt ? (
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                          <span className="text-sm text-gray-600">
+                            Score: <span className="font-semibold">{completedAttempt.score}/40</span> &middot; Band: <span className="font-semibold text-blue-600">{completedAttempt.band_score}</span>
+                          </span>
+                          <Link
+                            href={`/results/${completedAttempt.id}`}
+                            className="inline-flex items-center justify-center bg-blue-600 text-white px-5 sm:px-6 py-2.5 sm:py-2 rounded hover:bg-blue-700 text-sm sm:text-base min-h-[44px]"
+                          >
+                            View Results
+                          </Link>
+                        </div>
+                      ) : (
+                        <Link
+                          href={`/test/${test.id}`}
+                          className="inline-flex items-center justify-center bg-blue-600 text-white px-5 sm:px-6 py-2.5 sm:py-2 rounded hover:bg-blue-700 text-sm sm:text-base min-h-[44px]"
+                        >
+                          Start Test
+                        </Link>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
           </section>
